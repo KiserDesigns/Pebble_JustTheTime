@@ -1,0 +1,54 @@
+{
+    "author": "KiserDesigns",
+    "dependencies": {
+        "@rebble/clay": "^1.0.8"
+    },
+    "keywords": [
+        "pebble-app"
+    ],
+    "name": "justthetime",
+    "pebble": {
+        "capabilities": [
+            "configurable"
+        ],
+        "displayName": "JustTheTime",
+        "enableMultiJS": true,
+        "messageKeys": [
+            "BackgroundColor",
+            "HourColor",
+            "MinuteColor",
+            "DateColor",
+            "BatteryColor",
+            "HourLength",
+            "HourWidth",
+            "MinuteLength",
+            "MinuteWidth",
+            "DateSize",
+            "DateThickness",
+            "BatteryLength",
+            "BatteryWidth",
+            "ShowDate",
+            "ShowBattery"
+        ],
+        "projectType": "native",
+        "resources": {
+            "media": []
+        },
+        "sdkVersion": "3",
+        "targetPlatforms": [
+            "aplite",
+            "basalt",
+            "chalk",
+            "diorite",
+            "emery",
+            "gabbro",
+            "flint"
+        ],
+        "uuid": "113e8055-2f48-4ef9-b6cc-71094504bbf2",
+        "watchapp": {
+            "hiddenApp": true,
+            "watchface": true
+        }
+    },
+    "version": "1.0.0"
+}
