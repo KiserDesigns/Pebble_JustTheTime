@@ -29,7 +29,7 @@ module.exports = [
       {
         "type": "color",
         "messageKey": "MinuteColor",
-        "defaultValue": "0xFFFFFF",
+        "defaultValue": "0xFF5555",
         "label": "Minute Hand"
       },
       {
@@ -41,7 +41,7 @@ module.exports = [
       {
         "type": "color",
         "messageKey": "BatteryColor",
-        "defaultValue": "0xFFFFFF",
+        "defaultValue": "0x55FF55",
         "label": "Battery Bar"
       }
     ]
@@ -60,16 +60,16 @@ module.exports = [
         "label": "Hour Hand Length",
         "min": 1,
         "max": 15,
-        "step": 2
+        "step": 1
       },
       {
         "type": "slider",
         "messageKey": "HourWidth",
-        "defaultValue": 11,
+        "defaultValue": 6,
         "label": "Hour Hand Width",
         "min": 1,
         "max": 15,
-        "step": 2
+        "step": 1
       },
       {
         "type": "slider",
@@ -83,11 +83,11 @@ module.exports = [
       {
         "type": "slider",
         "messageKey": "MinuteWidth",
-        "defaultValue": 7,
+        "defaultValue": 4,
         "label": "Minute Hand Width",
         "min": 1,
         "max": 15,
-        "step": 2
+        "step": 1
       },
       {
         "type": "slider",
@@ -110,7 +110,7 @@ module.exports = [
       {
         "type": "slider",
         "messageKey": "BatteryLength",
-        "defaultValue": 8,
+        "defaultValue": 4,
         "label": "Battery Bar Length",
         "min": 1,
         "max": 10,
@@ -121,8 +121,8 @@ module.exports = [
         "messageKey": "BatteryWidth",
         "defaultValue": 3,
         "label": "Battery Bar Width",
-        "min": 1,
-        "max": 5,
+        "min": 2,
+        "max": 6,
         "step": 1
       }
     ]

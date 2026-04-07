@@ -25,44 +25,32 @@ typedef struct ClaySettings {
 // An instance of the struct
 static ClaySettings settings;
 
+// Main Window
 static Window *s_main_window;
-static TextLayer *s_time_layer;
-static TextLayer *s_date_layer;
-static TextLayer *s_battery_layer;
-static int s_battery_level;
 
-// Unobstructed area
+// Root (Parent) Window Layer
 static Layer *s_window_layer;
 
-// Hour Hand Layer
-//static Layer *s_canvas_layer;
-//GRect bounds = layer_get_bounds(s_window_layer);
-//s_canvas_layer = layer_create(bounds);
-//static void canvas_update_proc(Layer *layer, GContext *ctx) {
-  // Custom drawing happens here!
-//}
-// Assign the custom drawing procedure
-//layer_set_update_proc(s_canvas_layer, canvas_update_proc);
-// Add to Window
-//layer_add_child(s_window_layer, s_canvas_layer);
-
-
+// Global Values:
+static int s_battery_level;
+static bool s_battery_charging;
+static bool s_bluetooth_connected;
 
 // Set default settings
 static void prv_default_settings() {
   settings.BackgroundColor = GColorBlack;
   settings.HourColor = GColorWhite;
-  settings.MinuteColor = GColorWhite;
+  settings.MinuteColor = PBL_IF_COLOR_ELSE(GColorFromHEX(0xFF5555), GColorWhite);
   settings.DateColor = GColorWhite;
-  settings.BatteryColor = GColorWhite;
+  settings.BatteryColor = PBL_IF_COLOR_ELSE(GColorFromHEX(0x55FF55), GColorWhite);
   settings.HourLength = 7;
-  settings.HourWidth = 11;
+  settings.HourWidth = 11; // 6 * 2 - 1
   settings.MinuteLength = 13;
-  settings.MinuteWidth = 7;
+  settings.MinuteWidth = 7;  // 4 * 2 - 1
   settings.DateSize = 3;
   settings.DateThickness = 3;
-  settings.BatteryLength = 8;
-  settings.BatteryWidth = 3;
+  settings.BatteryLength = 4;
+  settings.BatteryWidth = 5; // 3 * 2 - 1
   settings.ShowDate = true;
   settings.ShowBattery = true;
 }
@@ -80,74 +68,83 @@ static void prv_load_settings() {
   persist_read_data(SETTINGS_KEY, &settings, sizeof(settings));
 }
 
-// Apply settings to UI elements
-static void prv_update_display() {
-  // Set background color
-  window_set_background_color(s_main_window, settings.BackgroundColor);
 
-  // Set text colors
-
-  // Show/hide date based on setting
-  //layer_set_hidden(text_layer_get_layer(s_date_layer), !settings.ShowDate);
-
-  // Mark battery layer for redraw (color may have changed)
-  layer_mark_dirty(s_window_layer);
-}
-
-static void update_time() {
+static void window_update_proc(Layer *layer, GContext *ctx) {
+  
   time_t temp = time(NULL);
   struct tm *tick_time = localtime(&temp);
+  
+  GRect bounds = layer_get_bounds(s_window_layer);
+  
+  window_set_background_color(s_main_window, settings.BackgroundColor);
+  
+  int hour = tick_time->tm_hour % 12;
+  int minute = tick_time->tm_min;
+  int second = tick_time->tm_sec;
+  
+  int hour_angle = DEG_TO_TRIGANGLE (/*30*hour + 0.5**/6*minute);
+  int minute_angle = DEG_TO_TRIGANGLE (6/**minute + 0.5*/*second);
+  
+  GPoint center = GPoint((bounds.size.w-1)/2, (bounds.size.h-1)/2);
+  int max_len = center.x>center.y? center.y : center.x;
+  
+  // Draw Hour Hand
+  graphics_context_set_stroke_color(ctx, settings.HourColor);
+  graphics_context_set_stroke_width(ctx, settings.HourWidth);
+  int hour_len = (max_len*settings.HourLength/14) - ((settings.HourWidth-1)/2);
+  GRect hour_rect = GRect ( center.x - hour_len, center.y - hour_len, 2*hour_len+1, 2*hour_len+1);
+  GPoint hour_end = gpoint_from_polar(hour_rect, GOvalScaleModeFitCircle, hour_angle);
+  graphics_draw_line(ctx, center, hour_end);
+  
+  // Draw Minute Hand
+  graphics_context_set_stroke_color(ctx, settings.MinuteColor);
+  graphics_context_set_stroke_width(ctx, settings.MinuteWidth);
+  int minute_len = (max_len*settings.MinuteLength/14) - ((settings.MinuteWidth-1)/2);
+  GRect minute_rect = GRect ( center.x - minute_len, center.y - minute_len, 2*minute_len+1, 2*minute_len+1);
+  GPoint minute_end = gpoint_from_polar(minute_rect, GOvalScaleModeFitCircle, minute_angle);
+  graphics_draw_line(ctx, center, minute_end);
+  
+  //z Draw the Battery Bar
+  graphics_context_set_stroke_color(ctx, settings.BatteryColor);
+  graphics_context_set_stroke_width(ctx, settings.BatteryWidth+4);
+  int battery_radius = (max_len*2/3);
+  GRect battery_rect = GRect ( center.x - battery_radius, center.y - battery_radius, 2*battery_radius+1, 2*battery_radius+1);
+  int battery_max_angle = 8 * settings.BatteryLength + 5;
+  int battery_angle = battery_max_angle * s_battery_level / 100;
+  graphics_draw_arc(ctx, battery_rect, GOvalScaleModeFitCircle, DEG_TO_TRIGANGLE ( 270 - battery_max_angle ), DEG_TO_TRIGANGLE ( 270 + battery_max_angle ));
+  graphics_context_set_stroke_color(ctx, settings.BackgroundColor);
+  graphics_context_set_stroke_width(ctx, settings.BatteryWidth);
+  graphics_draw_arc(ctx, battery_rect, GOvalScaleModeFitCircle, DEG_TO_TRIGANGLE ( 270 - battery_max_angle ), DEG_TO_TRIGANGLE ( 270 + battery_max_angle ));
+  graphics_context_set_stroke_color(ctx, settings.BatteryColor);
+  graphics_context_set_stroke_width(ctx, settings.BatteryWidth+2);
+  graphics_draw_arc(ctx, battery_rect, GOvalScaleModeFitCircle, DEG_TO_TRIGANGLE ( 270 - battery_angle ), DEG_TO_TRIGANGLE ( 270 + battery_angle ));
+  
 
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
-  update_time();
-
+  layer_mark_dirty(s_window_layer);
 }
 
 static void battery_callback(BatteryChargeState state) {
   s_battery_level = state.charge_percent;
-  //layer_mark_dirty(s_battery_layer);
-}
-
-static void battery_update_proc(Layer *layer, GContext *ctx) {
-//  GRect bounds = layer_get_bounds(layer);
-
-  // Find the width of the bar (inside the border)
-//  int bar_width = ((s_battery_level * (bounds.size.w - 4)) / 100);
-
-  // Draw the border using the text color
-//  graphics_context_set_stroke_color(ctx, settings.BatteryColor);
-//  graphics_draw_round_rect(ctx, bounds, 2);
-
-  // Choose color based on battery level
-//  GColor bar_color;
-//  if (s_battery_level <= 20) {
-//    bar_color = PBL_IF_COLOR_ELSE(GColorRed, settings.BatteryColor);
-//  } else if (s_battery_level <= 40) {
-//    bar_color = settings.BatteryColor;
-//  } else {
-//    bar_color = settings.BatteryColor;
-//  }
-
-  // Draw the filled bar inside the border
-//  graphics_context_set_fill_color(ctx, bar_color);
-//  graphics_fill_rect(ctx, GRect(2, 2, bar_width, bounds.size.h - 4), 1, GCornerNone);
+  s_battery_charging = state.is_charging;
+  
+  layer_mark_dirty(s_window_layer);
 }
 
 static void bluetooth_callback(bool connected) {
-  // Show icon if disconnected
-  // layer_set_hidden(bitmap_layer_get_layer(s_bt_icon_layer), connected);
-
+  s_bluetooth_connected = connected;
+  
   if (!connected) {
     vibes_double_pulse();
   }
+  
+  layer_mark_dirty(s_window_layer);
 }
              
 // AppMessage received handler
 static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
-
-  int settings_changed = false;
   
   // Check for Clay settings data
   Tuple *bg_color_t = dict_find(iterator, MESSAGE_KEY_BackgroundColor);
@@ -182,7 +179,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   
   Tuple *hour_width_t = dict_find(iterator, MESSAGE_KEY_HourWidth);
   if (hour_width_t) {
-    settings.HourWidth = hour_width_t->value->int32;
+    settings.HourWidth = hour_width_t->value->int32 * 2 - 1;
   }
   
   Tuple *min_length_t = dict_find(iterator, MESSAGE_KEY_MinuteLength);
@@ -192,7 +189,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   
   Tuple *min_width_t = dict_find(iterator, MESSAGE_KEY_MinuteWidth);
   if (min_width_t) {
-    settings.MinuteWidth = min_width_t->value->int32;
+    settings.MinuteWidth = min_width_t->value->int32 * 2 - 1;
   }
   
   Tuple *date_size_t = dict_find(iterator, MESSAGE_KEY_DateSize);
@@ -212,7 +209,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
   
   Tuple *batt_width_t = dict_find(iterator, MESSAGE_KEY_BatteryWidth);
   if (batt_width_t) {
-    settings.BatteryWidth = batt_width_t->value->int32;
+    settings.BatteryWidth = batt_width_t->value->int32 * 2 - 1;
   }
   
   Tuple *show_date_t = dict_find(iterator, MESSAGE_KEY_ShowDate);
@@ -230,7 +227,7 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       hour_length_t || hour_width_t || min_length_t || min_width_t || date_size_t || \
       date_thick_t || batt_length_t || batt_width_t || show_date_t || show_batt_t) {
     prv_save_settings();
-    prv_update_display();
+    layer_mark_dirty(s_window_layer);
 
   }
 }
@@ -248,41 +245,17 @@ static void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
 }
 
 static void main_window_load(Window *window) {
-  s_window_layer = window_get_root_layer(window);
-  GRect bounds = layer_get_bounds(s_window_layer);
+  GRect bounds = layer_get_bounds(window_get_root_layer(window));
 
-
-  // Center canvas
-  int date_height = 30;
-  int block_height = 56 + date_height;
-  int time_y = (bounds.size.h / 2) - (block_height / 2) - 10;
-  int date_y = time_y + 56;
-
-  // Create the time TextLayer
-  s_time_layer = text_layer_create(
-      GRect(0, time_y, bounds.size.w, 60));
-  text_layer_set_background_color(s_time_layer, GColorClear);
-  text_layer_set_text_color(s_time_layer, settings.HourColor);
-//  text_layer_set_font(s_time_layer, s_time_font);
-  text_layer_set_text_alignment(s_time_layer, GTextAlignmentCenter);
-
-
-  // Add layers to the Window
-  layer_add_child(s_window_layer, text_layer_get_layer(s_time_layer));
-
-  // Apply saved settings
-  prv_update_display();
-
+  s_window_layer = layer_create(bounds);
+  
+  layer_set_update_proc(s_window_layer, window_update_proc);
+  
+  layer_add_child(window_get_root_layer(window), s_window_layer);
 }
 
 static void main_window_unload(Window *window) {
-  text_layer_destroy(s_time_layer);
-//  text_layer_destroy(s_weather_layer);
-//  fonts_unload_custom_font(s_time_font);
-//  fonts_unload_custom_font(s_date_font);
-//  layer_destroy(s_battery_layer);
-//  gbitmap_destroy(s_bt_icon_bitmap);
-//  bitmap_layer_destroy(s_bt_icon_layer);
+  layer_destroy(s_window_layer);
 }
 
 static void init() {
@@ -297,9 +270,9 @@ static void init() {
   });
   window_stack_push(s_main_window, true);
 
-  update_time();
+  layer_mark_dirty(s_window_layer);
 
-  tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
+  tick_timer_service_subscribe(SECOND_UNIT, tick_handler);
 
   battery_state_service_subscribe(battery_callback);
   battery_callback(battery_state_service_peek());
