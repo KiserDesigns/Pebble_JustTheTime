@@ -28,7 +28,9 @@
             "BatteryLength",
             "BatteryWidth",
             "ShowDate",
-            "ShowBattery"
+            "DateFront",
+            "ShowBattery",
+            "BatteryFront"
         ],
         "projectType": "native",
         "resources": {
@@ -44,9 +46,8 @@
             "gabbro",
             "flint"
         ],
-        "uuid": "113e8055-2f48-4ef9-b6cc-71094504bbf2",
+        "uuid": "f77d3896-63b3-4cc4-b349-f61ac75ca168",
         "watchapp": {
-            "hiddenApp": true,
             "watchface": true
         }
     },

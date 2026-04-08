@@ -22,24 +22,28 @@ module.exports = [
       },
       {
         "type": "color",
+        "capabilities": ["COLOR"],
         "messageKey": "HourColor",
         "defaultValue": "0xFFFFFF",
         "label": "Hour Hand"
       },
       {
         "type": "color",
+        "capabilities": ["COLOR"],
         "messageKey": "MinuteColor",
         "defaultValue": "0xFF5555",
         "label": "Minute Hand"
       },
       {
         "type": "color",
+        "capabilities": ["COLOR"],
         "messageKey": "DateColor",
         "defaultValue": "0xFFFFFF",
         "label": "Date Color"
       },
       {
         "type": "color",
+        "capabilities": ["COLOR"],
         "messageKey": "BatteryColor",
         "defaultValue": "0x55FF55",
         "label": "Battery Bar"
@@ -92,7 +96,7 @@ module.exports = [
       {
         "type": "slider",
         "messageKey": "DateSize",
-        "defaultValue": 3,
+        "defaultValue": 2,
         "label": "Date Size",
         "min": 1,
         "max": 5,
@@ -101,7 +105,7 @@ module.exports = [
       {
         "type": "slider",
         "messageKey": "DateThickness",
-        "defaultValue": 3,
+        "defaultValue": 2,
         "label": "Date Thickness",
         "min": 1,
         "max": 5,
@@ -142,9 +146,21 @@ module.exports = [
       },
       {
         "type": "toggle",
+        "messageKey": "DateFront",
+        "label": "Date in Front",
+        "defaultValue": true
+      },
+      {
+        "type": "toggle",
         "messageKey": "ShowBattery",
         "label": "Show Battery",
         "defaultValue": true
+      },
+      {
+        "type": "toggle",
+        "messageKey": "BatteryFront",
+        "label": "Battery in Front",
+        "defaultValue": false
       }
     ]
   },
